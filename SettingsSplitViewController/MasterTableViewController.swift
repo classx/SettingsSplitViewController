@@ -12,7 +12,6 @@ class MasterTableViewController: UITableViewController {
     
     var currentIndexPath = IndexPath(row: 0, section: 0)
     
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -22,7 +21,11 @@ class MasterTableViewController: UITableViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        selectCurrentRowIfNeeded(orDeselect: true)
+        if UIScreen.isSplit {
+            tableView.selectRow(at: currentIndexPath, animated: true, scrollPosition: .none)
+        } else {
+            tableView.deselectRow(at: currentIndexPath, animated: true)
+        }
     }
     
     // MARK: - Interface orientations
@@ -30,13 +33,7 @@ class MasterTableViewController: UITableViewController {
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
         
-        if let count = navigationController?.viewControllers.count, UIDevice.isIPhonePlus && !UIDevice.isLandscape && count == 1 {
-            showItemController(0)
-        }
-        
-        coordinator.animate(alongsideTransition: nil, completion: { _ in
-            self.selectCurrentRowIfNeeded()
-        })
+        tableView.selectRow(at: currentIndexPath, animated: true, scrollPosition: .none)
     }
     
     // MARK: - TableView
@@ -58,27 +55,11 @@ class MasterTableViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if UIScreen.isSplit && currentIndexPath == indexPath { return }
+        guard !(UIScreen.isSplit && currentIndexPath == indexPath) else { return }
         
-        showItemController(indexPath.row)
-    }
-    
-    func selectCurrentRowIfNeeded(orDeselect: Bool = false) {
-        if UIScreen.isSplit {
-            tableView.selectRow(at: currentIndexPath, animated: true, scrollPosition: .none)
-        } else if orDeselect {
-            tableView.deselectRow(at: currentIndexPath, animated: true)
-        }
-    }
-    
-    // MARK: - Item controller
-    
-    func showItemController(_ index: Int) {
-        guard index < items.count else { return }
+        currentIndexPath.row = indexPath.row
         
-        currentIndexPath.row = index
-
-        let controller = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: items[index].storyboardID)
+        let controller = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: items[indexPath.row].storyboardID)
         showDetailViewController(controller, sender: nil)
     }
     

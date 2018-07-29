@@ -10,7 +10,6 @@ class Item2TableViewController: SettingsSplitViewController {
     let numberOfSections = 9
     let numberOfRowsInSection = 3
     
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         

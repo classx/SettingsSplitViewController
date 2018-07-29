@@ -23,7 +23,7 @@ class SettingsSplitViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let isFirst = indexPath.row == 0
-        let isLast  = indexPath.row == self.tableView(tableView, numberOfRowsInSection: indexPath.section) - 1
+        let isLast = indexPath.row == self.tableView(tableView, numberOfRowsInSection: indexPath.section) - 1
         
         return SettingsTableViewCell(isFirst: isFirst, isLast: isLast)
     }
@@ -40,8 +40,9 @@ class SettingsTableViewHeaderFooterView: UITableViewHeaderFooterView {
             var frame = newFrame
             
             if UIScreen.isSplit {
-                let indent = UITableView.indent()
-                frame.origin.x   += indent
+                let indent = UIDevice.isLandscape ? UITableView.indent.landscape : UITableView.indent.portrait
+                
+                frame.origin.x += indent
                 frame.size.width -= indent * 2
             }
             
@@ -53,17 +54,14 @@ class SettingsTableViewHeaderFooterView: UITableViewHeaderFooterView {
 
 class SettingsTableViewCell: UITableViewCell {
     
-    private var isFirst: Bool = false
-    private var isLast:  Bool = false
+    var isFirst: Bool = false
+    var isLast: Bool = false
     
-    private weak var topLayer:    CALayer?
-    private weak var bottomLayer: CALayer?
-
     init(isFirst: Bool, isLast: Bool) {
         super.init(style: .value1, reuseIdentifier: nil)
         
         self.isFirst = isFirst
-        self.isLast  = isLast
+        self.isLast = isLast
         
         drawSeparators(size: frame.size)
     }
@@ -72,26 +70,8 @@ class SettingsTableViewCell: UITableViewCell {
         super.init(coder: aDecoder)
     }
     
-    override var frame: CGRect {
-        get {
-            return super.frame
-        }
-        set(newFrame) {
-            var frame = newFrame
-            
-            if UIScreen.isSplit {
-                let indent = UITableView.indent()
-                frame.origin.x   += indent
-                frame.size.width -= indent * 2
-            } else {
-                layer.mask = nil
-            }
-            
-            drawSeparators(size: frame.size)
-            
-            super.frame = frame
-        }
-    }
+    weak var topLayer: CALayer?
+    weak var bottomLayer: CALayer?
     
     func drawSeparators(size: CGSize) {
         topLayer?.removeFromSuperlayer()
@@ -113,8 +93,29 @@ class SettingsTableViewCell: UITableViewCell {
             addSeparator(&bottomLayer, type: .middle, size: size)
         }
     }
-
-
+    
+    override var frame: CGRect {
+        get {
+            return super.frame
+        }
+        set(newFrame) {
+            var frame = newFrame
+            
+            if UIScreen.isSplit {
+                let indent = UIDevice.isLandscape ? UITableView.indent.landscape : UITableView.indent.portrait
+                
+                frame.origin.x += indent
+                frame.size.width -= indent * 2
+            } else {
+                layer.mask = nil
+            }
+            
+            drawSeparators(size: frame.size)
+            
+            super.frame = frame
+        }
+    }
+    
 }
 
 extension UITableViewCell {
@@ -130,16 +131,6 @@ extension UITableViewCell {
     func addSeparator(_ layer: inout CALayer?, type: SeparatorType, size: CGSize) {
         let tableSeparatorHeight: CGFloat = 1 / UIScreen.main.scale
         
-        let tableSeparator: UIColor = {
-            let hex   = 0xC8C7CC
-            
-            let red   = CGFloat((hex & 0xff0000) >> 16) / 255
-            let green = CGFloat((hex & 0x00ff00) >>  8) / 255
-            let blue  = CGFloat( hex & 0x0000ff)        / 255
-            
-            return UIColor(red: red, green: green, blue: blue, alpha: 1)
-        }()
-        
         var x: CGFloat = 0
         var y: CGFloat = 0
         
@@ -153,7 +144,7 @@ extension UITableViewCell {
         
         let newLayer = CALayer()
         newLayer.frame = CGRect(x: x, y: y, width: size.width - x, height: tableSeparatorHeight)
-        newLayer.backgroundColor = tableSeparator.cgColor
+        newLayer.backgroundColor = UIColor(red: 200/255, green: 199/255, blue: 204/255, alpha: 1).cgColor
         
         self.layer.addSublayer(newLayer)
         
@@ -177,8 +168,12 @@ extension UITableViewCell {
             }
             
             var y: CGFloat = 0
-            if  isFirst && !isLast { y = 1  }
-            if !isFirst &&  isLast { y = -1 }
+            
+            if isFirst && !isLast {
+                y = 1
+            } else if !isFirst && isLast {
+                y = -1
+            }
             
             let cornerRadius: CGFloat = 6
             
@@ -195,9 +190,12 @@ extension UITableViewCell {
     
     static let leftInset: CGFloat = {
         switch UIDevice.model {
-        case .iPhone4, .iPhone5, .iPhone6, .iPhoneX: return 16
-        case .iPhonePlus:                            return 20
-        case .iPad_9_7, .iPad_10_5, .iPad_12_9:      return 15
+        case .iPhone:
+            return 16
+        case .iPhonePlus:
+            return 20
+        case .iPad_9_7, .iPad_10_5, .iPad_12_9:
+            return 15
         }
     }()
     
@@ -205,21 +203,19 @@ extension UITableViewCell {
 
 extension UITableView {
     
-    // MARK: - Indent
-    
-    static let indentByDeviceOrientation: (portrait: CGFloat, landscape: CGFloat) = {
+    static let indent: (portrait: CGFloat, landscape: CGFloat) = {
         switch UIDevice.model {
-        case .iPhone4, .iPhone5, .iPhone6, .iPhoneX:
-            return (portrait:  0, landscape:  0)
-        case .iPhonePlus: return (portrait:  0, landscape: 20)
-        case .iPad_9_7:   return (portrait: 20, landscape: 20)
-        case .iPad_10_5:  return (portrait: 20, landscape: 20)
-        case .iPad_12_9:  return (portrait: 20, landscape: 87)
+        case .iPhone:
+            return (portrait: 0, landscape: 0)
+        case .iPhonePlus:
+            return (portrait: 0, landscape: 20)
+        case .iPad_9_7:
+            return (portrait: 20, landscape: 20)
+        case .iPad_10_5:
+            return (portrait: 20, landscape: 20)
+        case .iPad_12_9:
+            return (portrait: 20, landscape: 87)
         }
     }()
-    
-    class func indent(isLandscape: Bool = UIDevice.isLandscape) -> CGFloat {
-        return isLandscape ? indentByDeviceOrientation.landscape : indentByDeviceOrientation.portrait
-    }
     
 }
